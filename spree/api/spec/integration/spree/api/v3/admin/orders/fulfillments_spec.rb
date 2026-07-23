@@ -41,6 +41,83 @@ RSpec.describe 'Admin Order Fulfillments API', type: :request, swagger_doc: 'api
         end
       end
     end
+
+    post 'Create a fulfillment' do
+      tags 'Fulfillments'
+      consumes 'application/json'
+      produces 'application/json'
+      security [api_key: [], bearer_auth: []]
+      description 'Manually creates a fulfillment on a completed order, bypassing order routing — for example to mirror a shipment handled by an external carrier or 3PL. ' \
+                  'Moves the requested line item quantities out of their current fulfillments; when `items` is omitted, every not-yet-shipped unit is moved. ' \
+                  "Pass `status: 'shipped'` to register an already-shipped fulfillment (fires shipped webhooks and freezes cost/carrier). " \
+                  'When `delivery_method_id` is omitted, the fulfillment inherits the delivery method and cost of the source fulfillment(s) it fully drains — keeping the order total unchanged; ' \
+                  'partially drained splits get no carrier when shipped, and pending fulfillments are otherwise (re)priced by the standard rate engine, which selects the lowest-cost available rate. ' \
+                  'Pass `cost` to set an explicit shipping cost instead (e.g. the 3PL price) — note this changes the order total and payment state, ' \
+                  "and is guaranteed to persist only with `status: 'shipped'` (pending fulfillments are re-priced by the rate engine)."
+      admin_scope :write, :fulfillments
+
+      admin_sdk_example 'order-fulfillments/create'
+
+      parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
+      parameter name: :Authorization, in: :header, type: :string, required: true,
+                description: 'Bearer token for admin authentication'
+      parameter name: :order_id, in: :path, type: :string, required: true,
+                description: 'Order ID'
+      parameter name: :body, in: :body, schema: {
+        type: :object,
+        required: %w[stock_location_id],
+        properties: {
+          stock_location_id: { type: :string, description: 'Stock location the fulfillment ships from' },
+          tracking: { type: :string, example: 'INPOST-12345', description: 'Carrier tracking number, or a full https:// tracking link — a full URL is served back as tracking_url unchanged instead of being templated into the delivery method tracking URL' },
+          delivery_method_id: { type: :string, description: 'Delivery method (carrier) to attach as the selected rate. Defaults to the delivery method of the fully drained source fulfillment(s)' },
+          cost: { type: :string, example: '7.42', description: "Explicit shipping cost. Defaults to the summed cost of the fully drained source fulfillment(s), which keeps the order total unchanged; an explicit cost changes the order total and payment state. Guaranteed to persist only with status: 'shipped' — pending fulfillments are re-priced by the rate engine" },
+          status: { type: :string, enum: %w[shipped], description: "Pass 'shipped' to register the fulfillment as already shipped" },
+          items: {
+            type: :array,
+            description: 'Line item quantities to fulfill. Omit to fulfill every not-yet-shipped unit.',
+            items: {
+              type: :object,
+              required: %w[item_id quantity],
+              properties: {
+                item_id: { type: :string, description: 'Line item ID' },
+                quantity: { type: :integer, example: 1 }
+              }
+            }
+          },
+          metadata: { type: :object, additionalProperties: true }
+        }
+      }
+
+      response '201', 'fulfillment created' do
+        let(:'x-spree-api-key') { secret_api_key.plaintext_token }
+        let(:body) do
+          {
+            stock_location_id: shipment.stock_location.prefixed_id,
+            tracking: 'INPOST-12345',
+            status: 'shipped'
+          }
+        end
+
+        run_test! do |response|
+          data = JSON.parse(response.body)
+          expect(data['id']).to start_with('ful_')
+          expect(data['tracking']).to eq('INPOST-12345')
+          expect(data['status']).to eq('shipped')
+        end
+      end
+
+      response '422', 'order not completed' do
+        let(:'x-spree-api-key') { secret_api_key.plaintext_token }
+        let(:draft_order) { create(:order_with_line_items, store: store) }
+        let(:order_id) { draft_order.prefixed_id }
+        let(:body) { { stock_location_id: draft_order.shipments.first.stock_location.prefixed_id } }
+
+        run_test! do |response|
+          data = JSON.parse(response.body)
+          expect(data['error']['message']).to eq(Spree.t('fulfillments.errors.order_not_completed'))
+        end
+      end
+    end
   end
 
   path '/api/v3/admin/orders/{order_id}/fulfillments/{id}' do
@@ -84,7 +161,7 @@ RSpec.describe 'Admin Order Fulfillments API', type: :request, swagger_doc: 'api
       consumes 'application/json'
       produces 'application/json'
       security [api_key: [], bearer_auth: []]
-      description 'Updates a shipment (tracking, shipping rate).'
+      description 'Updates a fulfillment (tracking, delivery rate).'
       admin_scope :write, :fulfillments
 
       admin_sdk_example 'order-fulfillments/update'
@@ -99,8 +176,8 @@ RSpec.describe 'Admin Order Fulfillments API', type: :request, swagger_doc: 'api
       parameter name: :body, in: :body, schema: {
         type: :object,
         properties: {
-          tracking: { type: :string, example: '1Z999AA10123456784' },
-          selected_shipping_rate_id: { type: :string }
+          tracking: { type: :string, example: '1Z999AA10123456784', description: 'Carrier tracking number, or a full https:// tracking link served back as tracking_url unchanged' },
+          selected_delivery_rate_id: { type: :string, description: 'Delivery rate ID (dr_...) to select' }
         }
       }
 

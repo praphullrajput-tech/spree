@@ -1,5 +1,55 @@
 # @spree/admin-sdk
 
+## 0.8.0
+
+### Minor Changes
+
+- [#14342](https://github.com/spree/spree/pull/14342) [`202d846`](https://github.com/spree/spree/commit/202d846374270c75e19b23cea5498ea559577f67) Thanks [@damianlegawiec](https://github.com/damianlegawiec)! - Add per-channel order routing rule management. `@spree/admin-sdk` gains `channels.orderRoutingRules.{list,get,create,update,delete}` (nested under `/channels/:channel_id/order_routing_rules`) plus `orderRoutingRules.types()` for rule-kind discovery; the admin `Store` type now exposes `preferred_order_routing_strategy`. The dashboard's channel edit sheet embeds a routing-rules editor — drag-to-reorder priority, per-rule active toggles, an "Add rule" picker fed by the types endpoint (offering only kinds not yet on the channel; rule kinds are unique per channel), and schema-driven preference forms for rule kinds that declare preferences. The editor renders only when the channel's effective routing strategy is Rules. `Subject.OrderRoutingRule` is available for permission checks.
+
+## 0.7.0
+
+### Minor Changes
+
+- Support channel binding on publishable API keys. `apiKeys.create()` accepts an optional `channel_id`, and `ApiKey` now carries `channel_id`. A bound key always resolves its channel server-side and rejects requests naming a different one; the binding is create-only and immutable. Omit `channel_id` for a store-wide key.
+
+## 0.6.1
+
+### Patch Changes
+
+- `Customer` supports the new `newsletter_subscriber` expand — pass `expand: ['newsletter_subscriber']` to `customers.get`/`customers.list` to include the customer's store-scoped newsletter subscription.
+
+## 0.6.0
+
+This is the Admin API surface the 5.6 React Dashboard consumes — hosts installing `@spree/dashboard@0.10.x` from the registry need this version; 0.5.0 lacks exports the dashboard imports.
+
+### Minor Changes
+
+- Add asynchronous CSV imports. `client.imports.create({ type, attachment })` queues an import from a direct-uploaded CSV (pass the `signed_id` from `client.directUploads.create()`); the response is in the `mapping` state and carries the type's `schema_fields`, the file's `csv_headers`, a `sample_row`, and auto-assigned column `mappings`. Adjust mappings if needed and call `client.imports.completeMapping(id, { mappings })` to start background processing, then poll `client.imports.get(id)` — `rows_count`, `completed_rows_count`, and `failed_rows_count` drive progress until the terminal `completed`/`failed` status. Failed rows (with the raw CSV `data` and per-row `validation_errors`) are listed via `client.imports.rows.list(id, { status_eq: 'failed' })` and can be re-processed with `client.imports.retryFailedRows(id)`. Pass an optional `results_url` on create (validated against the store's allowed origins) and the import-done email links back to your admin's imports view with `?import=<id>` appended. New `Import`, `ImportRow`, `ImportMapping`, `ImportType`, `ImportCreateParams`, and `ImportCompleteMappingParams` types describe these shapes.
+
+- Add translation management for translatable resources. `client.translatableResources.list()` discovers every translatable resource type, its translatable fields, and whether each one exposes a dedicated read route (`readable`); `client.locales.list()` returns the locales a merchant can translate content into for the current store. Per-resource reads are available via `client.products.translations.get(id)` and `client.optionTypes.translations.get(id)`, each returning the full locale × field matrix plus any nested translatable children (e.g. an option type's option values) in one request. All writes go through `client.translations.batch(entries)` — a single atomic endpoint that upserts translations across many records of any registered type, so an option type and all its option values can be translated in one save. New `Locale`, `TranslatableResource`, `TranslatableField`, `ResourceTranslations`, `ResourceTranslationsNode`, and `TranslationBatchEntry` types describe these shapes.
+
+- Add `orders.fulfillments.create` for manually registering fulfillments on completed orders (`POST /orders/:order_id/fulfillments`). Supports external carrier / 3PL sync: pick the stock location, carrier (`delivery_method_id`), tracking number, and line item quantities (`items`, omitted = everything not yet shipped), and pass `status: 'shipped'` to register an already-shipped fulfillment. Adds the `FulfillmentCreateParams` type. `FulfillmentUpdateParams.selected_delivery_rate_id` is now honored by the Admin API (previously the server expected a different field name and ignored it).
+
+- `orders.fulfillments.create` now accepts an optional `cost` (explicit shipping cost, e.g. the 3PL price — frozen exactly on `status: 'shipped'` registrations; note it changes the order total and payment state). When `delivery_method_id` is omitted, the new fulfillment now inherits the delivery method and cost of the source fulfillment(s) it fully drains instead of defaulting to the lowest-cost rate.
+
+- Add pre-order management to the Admin API. `Variant` now exposes the editable `preorderable` flag, `preorder_ships_at` (the "ships by" date), and `backorder_limit` (the universal oversell cap — units sellable beyond available stock as backorders or pre-orders; `null` = unlimited), alongside the computed `preorder` state; `Product` and `LineItem` gain `preorder` + `preorder_ships_at`. `ProductVariantInput`, `VariantCreateParams`, and `VariantUpdateParams` accept `preorderable`, `preorder_ships_at`, and `backorder_limit`, so a variant can be flagged for pre-order and capped in a single write.
+
+- Expose customer group membership on the Customer resource. `Customer.customer_group_ids` now always returns the prefixed group IDs a customer belongs to (the full `customer_groups` objects remain available via `expand`), and `CustomerCreateParams`/`CustomerUpdateParams` accept `customer_group_ids` to replace a customer's group membership in a single `PATCH /customers/{id}` — no separate add/remove calls needed.
+
+- Add self-service profile updates for the authenticated admin. `client.me.update(params)` (`PATCH /me`) lets the signed-in admin change their own `selected_locale` (admin UI display language), `first_name`, and `last_name` without going through the store-scoped staff-management endpoint. The `MeResponse.user` shape now includes `selected_locale`, and a new `MeUpdateParams` type describes the writable fields.
+
+- Expose `Store.available_locales` — the full canonical set of locale codes a merchant may translate content into, independent of the store's currently-configured `supported_locales`. Lets locale pickers offer any supported locale instead of only ones already in use.
+
+- Expose the store-wide gated storefront defaults on the Store resource. `Store.preferred_storefront_access` (`public`, `prices_hidden`, or `login_required`) and `Store.preferred_guest_checkout` are now serialized, and `StoreUpdateParams` accepts both — letting apps read and configure the store-level fallback that channels inherit when they don't set their own posture.
+
+### Patch Changes
+
+- `ExportCreateParams` accepts an optional `results_url` (validated against the store's allowed origins) — the export-done email uses it as its download button target instead of relying on the legacy Rails admin's routes.
+
+- Fulfillment `tracking` now accepts a full `https://` tracking link — the API serves it back as `tracking_url` unchanged instead of templating it into the delivery method's tracking URL. Useful when an external system (3PL, courier API) provides the complete link.
+
+- Regenerated types: fixes `created_at`/`updated_at` on Country, State, and other resources previously typed `unknown` to `string`. Admin money fields remain non-nullable — storefront price gating never applies to the Admin API.
+
 ## 0.5.0
 
 ### Minor Changes

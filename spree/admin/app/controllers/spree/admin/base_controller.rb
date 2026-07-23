@@ -88,16 +88,12 @@ module Spree
       end
 
       # Set the UI language (`I18n.locale`, via super) while keeping content
-      # reads on the store's locale — see Spree::Admin::LocaleConcern.
-      #
-      # `super` derives `I18n.default_locale` from the overridden `default_locale`
-      # (the admin UI language), but `I18n.default_locale` must track the store's
-      # *content* locale so it matches `Mobility.locale`; otherwise Mobility JOINs
-      # the translations table instead of the base column and ordered + `DISTINCT`
-      # listings raise. Re-align it immediately after `super`.
+      # reads on the store's locale — see Spree::Admin::LocaleConcern. `super`
+      # records the content locale in `Spree::Current` (the admin overrides
+      # `default_locale` to the UI language, but `content_locale` stays on the
+      # store's default), and `pin_content_locale!` aligns Mobility with it.
       def set_locale
         super
-        align_i18n_default_locale_to_content!
         pin_content_locale!
         sync_pagy_locale!
       end
@@ -120,14 +116,18 @@ module Spree
           detect { |locale| supported_admin_locale?(locale) } || default_locale
       end
 
+      # The store's timezone resolved to an +ActiveSupport::TimeZone+, falling
+      # back to +Time.zone+ when the preference holds an unknown zone name.
+      # @return [ActiveSupport::TimeZone]
       def current_timezone
-        @current_timezone ||= current_store.preferred_timezone
+        @current_timezone ||= ActiveSupport::TimeZone[current_store.preferred_timezone] || Time.zone
       end
+      helper_method :current_timezone
 
       # datetime-local inputs submit values without timezone information. Interpret
       # them in the store's timezone so they match what the admin sees in the form.
       def parse_datetime_in_store_timezone(attrs, *fields)
-        zone = ActiveSupport::TimeZone[current_timezone] || Time.zone
+        zone = current_timezone
 
         fields.each do |field|
           value = attrs[field]

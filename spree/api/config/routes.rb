@@ -20,6 +20,9 @@ Spree::Core::Engine.add_routes do
         resources :currencies, only: [:index]
         resources :locales, only: [:index]
 
+        # Current channel context (never a list — see Store::ChannelController)
+        resource :channel, only: [:show], controller: 'channel'
+
         # Catalog
         resources :products, only: [:index, :show] do
           collection do
@@ -59,10 +62,15 @@ Spree::Core::Engine.add_routes do
         # Customers
         resources :customers, only: [:create]
 
-        # Newsletter Subscriptions (guest-accessible: subscribe + verify by token)
-        resources :newsletter_subscribers, only: [:create] do
+        # Newsletter Subscriptions
+        # - create + verify + request_unsubscribe are guest-accessible
+        # - destroy accepts either an unsubscribe token (from email links) or JWT auth
+        # A signed-in customer reads their own subscription (and its id) off the
+        # `newsletter_subscriber` association on GET /customers/me.
+        resources :newsletter_subscribers, only: [:create, :destroy] do
           collection do
             post :verify
+            post :request_unsubscribe
           end
         end
 
@@ -134,6 +142,12 @@ Spree::Core::Engine.add_routes do
         get 'auth/invitations/:id/lookup', to: 'invitation_acceptances#lookup'
         post 'auth/invitations/:id/accept', to: 'invitation_acceptances#accept'
 
+        # Public password reset — unauthenticated; the token is the credential.
+        # Mounted under `auth/` so the refresh-token cookie issued on success
+        # shares its path with `/auth/refresh`.
+        post 'auth/password_resets', to: 'password_resets#create'
+        patch 'auth/password_resets/:id', to: 'password_resets#update'
+
         # Dashboard
         namespace :dashboard do
           get :analytics
@@ -185,6 +199,19 @@ Spree::Core::Engine.add_routes do
           member do
             get :download
           end
+        end
+
+        # CSV Imports — see docs/plans/5.6-admin-spa-csv-import.md
+        resources :imports, only: [:index, :show, :create, :destroy] do
+          collection do
+            get :template
+          end
+          member do
+            patch :complete_mapping
+            patch :retry_failed_rows
+            get :download
+          end
+          resources :rows, only: [:index], controller: 'import_rows'
         end
 
         # Products
@@ -318,7 +345,14 @@ Spree::Core::Engine.add_routes do
             post :add_products
             post :remove_products
           end
+
+          resources :order_routing_rules, only: [:index, :show, :create, :update, :destroy]
         end
+
+        # Subclass discovery for the routing-rules editor, mirroring
+        # `/promotion_rules/types`. Top-level so the SPA can build the
+        # "Add rule" picker without a parent channel.
+        get 'order_routing_rules/types', to: 'order_routing_rules#types'
 
         # Variants (top-level, for search/autocomplete across all products)
         resources :variants, only: [:index, :show], concerns: :custom_fieldable
@@ -337,7 +371,7 @@ Spree::Core::Engine.add_routes do
           end
 
           resources :items, only: [:index, :show, :create, :update, :destroy], controller: 'orders/items'
-          resources :fulfillments, controller: 'orders/fulfillments', only: [:index, :show, :update] do
+          resources :fulfillments, controller: 'orders/fulfillments', only: [:index, :show, :create, :update] do
             member do
               patch :fulfill
               patch :cancel

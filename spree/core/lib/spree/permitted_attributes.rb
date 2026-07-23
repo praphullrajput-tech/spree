@@ -91,7 +91,7 @@ module Spree
 
     @@allowed_origin_attributes = [:origin]
 
-    @@api_key_attributes = [:name, :key_type, { scopes: [] }]
+    @@api_key_attributes = [:name, :key_type, :channel_id, { scopes: [] }]
 
     @@asset_attributes = [:type, :viewable_id, :viewable_type, :attachment, :alt, :position, :url, :signed_id]
 
@@ -240,7 +240,8 @@ module Spree
 
     @@shipping_category_attributes = [:name]
 
-    @@channel_attributes = [:name, :code, :active, :default, :preferred_order_routing_strategy]
+    @@channel_attributes = [:name, :code, :active, :default, :preferred_order_routing_strategy,
+                            :preferred_storefront_access, :preferred_guest_checkout]
 
     @@shipping_method_attributes = [:name, :admin_name, :code, :tracking_url, :tax_category_id, :display_on,
                                     :estimated_transit_business_days_min, :estimated_transit_business_days_max,
@@ -256,7 +257,7 @@ module Spree
     @@stock_item_attributes = [:variant_id, :stock_location_id, :backorderable, :count_on_hand, { metadata: {} }]
 
     @@stock_location_attributes = [
-      :name, :active, :address1, :address2, :city, :zipcode, :company,
+      :name, :admin_name, :active, :address1, :address2, :city, :zipcode, :company,
       :backorderable_default, :state_name, :state_id, :country_id, :phone,
       :propagate_all_variants
     ]
@@ -278,7 +279,7 @@ module Spree
                           :preferred_limit_digital_download_count, :preferred_limit_digital_download_days,
                           :preferred_digital_asset_link_expire_time,
                           :logo, :mailer_logo,
-                          :preferred_guest_checkout]
+                          :preferred_guest_checkout, :preferred_storefront_access]
 
     @@store_credit_attributes = %i[amount currency category_id memo]
 
@@ -307,7 +308,7 @@ module Spree
 
     @@variant_attributes = [
       :name, :presentation, :cost_price, :discontinue_on, :lock_version,
-      :position, :track_inventory, :tax_category_id,
+      :position, :track_inventory, :preorderable, :preorder_ships_at, :backorder_limit, :tax_category_id,
       :product_id, :product, :option_values_attributes, :price, :compare_at_price,
       :weight, :height, :width, :depth, :sku, :barcode, :cost_currency,
       :weight_unit, :dimensions_unit,

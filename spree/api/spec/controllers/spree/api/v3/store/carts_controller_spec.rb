@@ -35,6 +35,22 @@ RSpec.describe Spree::Api::V3::Store::CartsController, type: :controller do
         expect(numbers).to include(user_cart1.number, user_cart2.number)
       end
 
+      it 'scopes carts to the request channel — other channels never leak into a surface' do
+        wholesale = create(:channel, store: store, code: 'wholesale')
+        wholesale_cart = create(:order, user: user, store: store, channel: wholesale)
+
+        get :index
+
+        numbers = json_response['data'].map { |c| c['number'] }
+        expect(numbers).not_to include(wholesale_cart.number)
+
+        request.headers['X-Spree-Channel'] = 'wholesale'
+        get :index
+
+        numbers = json_response['data'].map { |c| c['number'] }
+        expect(numbers).to eq([wholesale_cart.number])
+      end
+
       it 'returns carts ordered by updated_at desc' do
         user_cart1.update_column(:updated_at, 1.hour.ago)
         user_cart2.update_column(:updated_at, Time.current)
@@ -729,41 +745,71 @@ RSpec.describe Spree::Api::V3::Store::CartsController, type: :controller do
         request.headers['Authorization'] = "Bearer #{jwt_token}"
       end
 
-      it 'associates guest cart with current user' do
+      context 'with the guest cart token' do
+        before { request.headers['x-spree-token'] = guest_cart.token }
+
+        it 'associates guest cart with current user' do
+          patch :associate, params: { id: guest_cart.prefixed_id }
+
+          expect(response).to have_http_status(:ok)
+          expect(guest_cart.reload.user).to eq(user)
+          expect(json_response['number']).to eq(guest_cart.number)
+        end
+
+        it 'updates cart email to users email' do
+          patch :associate, params: { id: guest_cart.prefixed_id }
+
+          expect(response).to have_http_status(:ok)
+          expect(guest_cart.reload.email).to eq(user.email)
+        end
+
+        it 'sets user addresses on cart when user has addresses' do
+          bill = create(:address, firstname: 'Bill')
+          ship = create(:address, firstname: 'Ship')
+          user.update!(bill_address: bill, ship_address: ship)
+
+          patch :associate, params: { id: guest_cart.prefixed_id }
+
+          expect(response).to have_http_status(:ok)
+          guest_cart.reload
+          expect(guest_cart.bill_address).to be_present
+          expect(guest_cart.ship_address).to be_present
+        end
+      end
+
+      it 'allows re-associating a cart already owned by current user with its token' do
+        guest_cart.update!(user: user)
+        request.headers['x-spree-token'] = guest_cart.token
+
         patch :associate, params: { id: guest_cart.prefixed_id }
 
         expect(response).to have_http_status(:ok)
         expect(guest_cart.reload.user).to eq(user)
-        expect(json_response['number']).to eq(guest_cart.number)
       end
 
-      it 'updates cart email to users email' do
+      it 'forbids associating a cart without the cart token' do
         patch :associate, params: { id: guest_cart.prefixed_id }
 
-        expect(response).to have_http_status(:ok)
-        expect(guest_cart.reload.email).to eq(user.email)
+        expect(response).to have_http_status(:forbidden)
+        expect(json_response['error']['code']).to eq('access_denied')
+        expect(guest_cart.reload.user).to be_nil
       end
 
-      it 'sets user addresses on cart when user has addresses' do
-        bill = create(:address, firstname: 'Bill')
-        ship = create(:address, firstname: 'Ship')
-        user.update!(bill_address: bill, ship_address: ship)
-
-        patch :associate, params: { id: guest_cart.prefixed_id }
-
-        expect(response).to have_http_status(:ok)
-        guest_cart.reload
-        expect(guest_cart.bill_address).to be_present
-        expect(guest_cart.ship_address).to be_present
-      end
-
-      it 'allows re-associating cart already owned by current user' do
+      it 'forbids associating an own cart without the cart token' do
         guest_cart.update!(user: user)
 
         patch :associate, params: { id: guest_cart.prefixed_id }
 
-        expect(response).to have_http_status(:ok)
-        expect(guest_cart.reload.user).to eq(user)
+        expect(response).to have_http_status(:forbidden)
+      end
+
+      it 'forbids associating a cart with the wrong cart token' do
+        request.headers['x-spree-token'] = 'not-the-real-token'
+
+        patch :associate, params: { id: guest_cart.prefixed_id }
+
+        expect(response).to have_http_status(:forbidden)
+        expect(guest_cart.reload.user).to be_nil
       end
 
       it 'returns not found for invalid id' do
@@ -802,6 +848,8 @@ RSpec.describe Spree::Api::V3::Store::CartsController, type: :controller do
 
     context 'without JWT authentication' do
       it 'returns unauthorized' do
+        request.headers['x-spree-token'] = guest_cart.token
+
         patch :associate, params: { id: guest_cart.prefixed_id }
 
         expect(response).to have_http_status(:unauthorized)

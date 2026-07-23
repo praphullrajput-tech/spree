@@ -46,6 +46,10 @@ en:
         origin_settings: Origin Settings
       amount_spent: Amount spent
       api_keys:
+        all_channels: All channels (store-wide)
+        channel: Channel
+        channel_description: Optional. Bind this key to a single channel — a bound key always resolves that channel and rejects requests naming any other. Leave on "All channels" for a store-wide key.
+        channel_immutable: The channel binding is fixed when the key is created. To change it, create a new key bound to the channel you need and revoke this one.
         example_request: Example Request
         key_revoked_message: This API key has been revoked and can no longer be used.
         key_type_descriptions:
@@ -117,9 +121,21 @@ en:
         code_hint: A short, stable identifier (e.g. "online", "pos", "wholesale"). Used by API clients via the X-Spree-Channel header and for order attribution.
         default: Default channel
         default_hint: Exactly one channel per store is the default. Used as the fallback when no channel is selected and as the auto-publish target for new products.
+        guest_checkout: Guest checkout
+        guest_checkout_allowed: Allowed
+        guest_checkout_blocked: Not allowed
+        guest_checkout_hint: Whether shoppers can check out without an account on this channel. Inherits the store setting when unset.
+        guest_checkout_inherit: Inherit from store
         order_routing_strategy: Order routing strategy
         order_routing_strategy_hint: Overrides the store-level routing strategy for orders attributed to this channel.
         order_routing_strategy_inherit: Inherit from store
+        storefront_access: Storefront access
+        storefront_access_hint: Controls what anonymous visitors can see on this channel. Inherits the store setting when unset. When prices are hidden, guests must sign in to check out — guest checkout does not apply.
+        storefront_access_inherit: Inherit from store
+        storefront_access_options:
+          login_required: Login required — visitors must sign in to browse
+          prices_hidden: Prices hidden — visitors must sign in to see prices
+          public: Public — anyone can browse and see prices
       checkout_settings:
         checkout_links:
           description: Links to these pages will be displayed in the checkout footer.
@@ -132,6 +148,9 @@ en:
         special_instructions:
           description: Allow customers to add special instructions to their order.
           label: Display the special instructions field
+        storefront_access:
+          description: Default control over what anonymous visitors can see across the store. Individual sales channels can override this. When prices are hidden, guests must sign in to check out — guest checkout does not apply.
+          label: Storefront access
       close_sidebar: Close sidebar
       copied: Copied!
       copy_payment_link: Copy Payment Link
@@ -519,12 +538,47 @@ en:
           setup: Setup Payment Methods
           title: Please setup Payment Methods for your store
         set_customer_support_email: Set customer support email
+        setup_payment_method: Setup Payment Methods
+        setup_storefront: Setup Storefront
         setup_taxes_collection: Setup taxes collection
+        storefront:
+          copy: Spree is headless — connect any storefront to the Store API, whether it's a web storefront or a mobile app. Need one? Deploy the official Next.js storefront in one click.
+          done: Your storefront is connected and live at
+          manage: Manage storefront
+          setup: Setup Storefront
         taxes:
           copy: In order to collect taxes, please setup your tax rates.
           done: You're all set! You can always manage your taxes on the <a href="%{link}" data-turbo-frame="_top">settings</a> page.
           setup: Setup Tax Rates
       storefront: Storefront
+      storefront_setup:
+        allow_origin_button: Allow this origin & finish setup
+        api_url_label: Store API URL
+        connect_copy: 'Use these credentials in any client that talks to the Store API — a web storefront, a mobile app, or anything else:'
+        connect_title: Connect your storefront
+        connected_title: Connected storefronts
+        deploy_button: Deploy to Vercel
+        deploy_copy: Don't have a storefront yet? The fastest way to launch is the official open-source Next.js storefront. Deploying clones it to your Git account and builds it on Vercel with your credentials prefilled.
+        deploy_finish_hint: Once the deployment finishes, copy your storefront's URL from Vercel into the Storefront URL field below and save it to finish the setup.
+        deploy_title: 'Recommended: deploy the official Next.js storefront'
+        deployed_copy: It's now live at
+        deployed_title: Your storefront has been deployed!
+        deployment_already_allowed: This storefront origin is already allowed —
+        description: Connect your web storefront or mobile app with the credentials below, or deploy the official Next.js storefront in one click.
+        done: Your storefront is connected and live at
+        env_description: Your Spree Store API URL and publishable key. Both are prefilled from your store — adjust them before deploying if needed.
+        invalid_origin: This doesn't look like a valid storefront URL.
+        local_installation_instructions: Local installation instructions
+        loopback_warning: Your store URL points to a local address that Vercel's build servers can't reach. Deploy your backend to a public URL first, or adjust the SPREE_API_URL value during the Vercel setup.
+        manage_allowed_origins: Manage allowed origins
+        origin_allowed: "%{origin} can now access your Store API."
+        publishable_key_label: Publishable API key
+        see_online_demo: See online demo
+        storefront_url_help: The URL customers use to reach your storefront. It becomes the base for links in customer emails and is automatically added as an allowed origin so browser-based storefronts can call the Store API.
+        storefront_url_label: Storefront URL
+        storefront_url_saved: 'Storefront URL saved: %{url}'
+        title: Setup Storefront
+        view_on_vercel: View on Vercel
       successful: Successful
       successfully_reset_digital_links_limit: Download limits have been reset
       table:
@@ -625,7 +679,13 @@ en:
         add_option:
           empty: Add options like size or color
           not_empty: Add another option
+        backorder_limit_hint: Maximum number of units sold beyond available stock — caps backorders and pre-orders. Leave blank for unlimited.
+        backorder_limit_label: Backorder limit
         compare_at_price_description: This price is used to show marked down price on the product page.
+        preorder_ships_at_hint: When you expect to ship pre-orders. Shown to customers as the delivery promise; the pre-order ends once this date passes.
+        preorder_ships_at_label: Ships by
+        preorderable_hint: Sell this variant before it's in stock. Cap how many you'll take with the backorder limit, enter incoming stock as the count, or leave the limit blank for unlimited.
+        preorderable_label: Available for pre-order
         stock_locations_link: To add more stock locations please go to <a href="%{link}">Stock Locations</a>
         total_inventory_html: 'Total inventory at %{stock_location} location: %{count} available'
       vendors:
@@ -877,7 +937,7 @@ en:
     order_email_resent_error: Order confirmation mail can only be sent for completed orders
     order_line_items: Order Line Items
     overview: Overview
-    package_from: package from
+    package_from: Package from
     page_not_found: Sorry! Page you are looking can’t be found.
     page_not_found_message: This page just doesn't exist.
     paste: Paste

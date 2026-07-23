@@ -7,6 +7,7 @@ import {
   getInitials,
   LocaleLabel,
   PageHeader,
+  Slot,
   TagCombobox,
   useResourceMutation,
 } from '@spree/dashboard-core'
@@ -85,9 +86,9 @@ import { useTranslation } from 'react-i18next'
 import {
   CustomFieldsInlineCard,
   EditableApiCustomFieldsProvider,
-} from '@/components/spree/custom-fields/custom-fields-inline'
-import { orderQueryKey, useOrder, useOrderMutation } from '@/hooks/use-order'
-import { spreeJsonLinkResolver } from '@/lib/json-link-resolver'
+} from '../../../../components/spree/custom-fields/custom-fields-inline'
+import { orderQueryKey, useOrder, useOrderMutation } from '../../../../hooks/use-order'
+import { spreeJsonLinkResolver } from '../../../../lib/json-link-resolver'
 
 export const Route = createFileRoute('/_authenticated/$storeId/orders/$orderId')({
   component: OrderDetailPage,
@@ -161,6 +162,7 @@ function OrderDetailPage() {
           <DiscountsCard order={order} />
           <SpecialInstructionsCard order={order} />
           <InternalNoteCard order={order} />
+          <Slot name="order.form_sidebar" context={{ order }} />
         </>
       }
     />
@@ -868,9 +870,12 @@ function ShipmentsCard({ order }: { order: Order }) {
                 </DropdownMenu>
               </div>
 
-              {fulfillment.delivery_method && (
+              {(fulfillment.delivery_method || Number.parseFloat(fulfillment.cost) > 0) && (
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">{fulfillment.delivery_method.name}</span>
+                  <span className="text-muted-foreground">
+                    {fulfillment.delivery_method?.name ??
+                      t('admin.pages.orders.detail.no_delivery_method')}
+                  </span>
                   <span>{fulfillment.display_cost}</span>
                 </div>
               )}
@@ -1306,7 +1311,7 @@ function SummaryRow({
 function OrderSummaryCard({ order }: { order: Order }) {
   const { t } = useTranslation()
   const { storeId } = Route.useParams()
-  const outstandingBalance = Number.parseFloat(order.amount_due ?? '0')
+  const outstandingBalance = Number.parseFloat(order.amount_due)
 
   return (
     <Card>
@@ -1474,7 +1479,7 @@ function DiscountsCard({ order }: { order: Order }) {
     adminClient.orders.storeCredits.remove(orderId),
   )
 
-  const hasStoreCredit = Number.parseFloat(order.store_credit_total ?? '0') > 0
+  const hasStoreCredit = Number.parseFloat(order.store_credit_total) > 0
   const hasCustomer = Boolean(order.customer_id)
 
   return (

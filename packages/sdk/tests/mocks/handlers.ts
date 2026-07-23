@@ -556,6 +556,30 @@ export const handlers = [
     HttpResponse.json({ token: 'new-jwt-token', user: fixtures.user }),
   ),
 
+  // Channel — echoes the X-Spree-Channel header so client channel wiring is testable
+  http.get(`${API_PREFIX}/channel`, ({ request }) => {
+    if (request.headers.get('X-Spree-Channel') === 'wholesale') {
+      return HttpResponse.json({
+        id: 'ch_2',
+        name: 'Wholesale',
+        code: 'wholesale',
+        active: true,
+        default: false,
+        storefront_access: 'login_required',
+        guest_checkout: false,
+      })
+    }
+    return HttpResponse.json({
+      id: 'ch_1',
+      name: 'Online Store',
+      code: 'online',
+      active: true,
+      default: true,
+      storefront_access: 'public',
+      guest_checkout: true,
+    })
+  }),
+
   // Policies
   http.get(`${API_PREFIX}/policies`, () =>
     HttpResponse.json({
@@ -634,5 +658,15 @@ export const handlers = [
       verified: true,
       verified_at: '2026-01-02T00:00:00Z',
     }),
+  ),
+
+  http.post(
+    `${API_PREFIX}/newsletter_subscribers/request_unsubscribe`,
+    () => new HttpResponse(null, { status: 202 }),
+  ),
+
+  http.delete(
+    `${API_PREFIX}/newsletter_subscribers/:id`,
+    () => new HttpResponse(null, { status: 204 }),
   ),
 ]

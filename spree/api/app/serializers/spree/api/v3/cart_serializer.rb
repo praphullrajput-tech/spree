@@ -5,21 +5,21 @@ module Spree
       # Pre-purchase cart data with checkout progression info
       class CartSerializer < BaseSerializer
         typelize number: :string, current_step: :string, completed_steps: 'string[]', token: :string, email: [:string, nullable: true],
-                 customer_note: [:string, nullable: true], market_id: [:string, nullable: true],
+                 customer_note: [:string, nullable: true], market_id: [:string, nullable: true], channel_id: [:string, nullable: true],
                  currency: :string, locale: [:string, nullable: true], total_quantity: :number,
                  requirements: 'Array<{step: string, field: string, message: string}>',
-                 item_total: :string, display_item_total: :string,
-                 delivery_total: :string, display_delivery_total: :string,
-                 adjustment_total: :string, display_adjustment_total: :string,
-                 discount_total: :string, display_discount_total: :string,
-                 tax_total: :string, display_tax_total: :string,
-                 included_tax_total: :string, display_included_tax_total: :string,
-                 additional_tax_total: :string, display_additional_tax_total: :string,
-                 store_credit_total: :string, display_store_credit_total: :string,
-                 gift_card_total: :string, display_gift_card_total: :string,
+                 item_total: [:string, nullable: true], display_item_total: [:string, nullable: true],
+                 delivery_total: [:string, nullable: true], display_delivery_total: [:string, nullable: true],
+                 adjustment_total: [:string, nullable: true], display_adjustment_total: [:string, nullable: true],
+                 discount_total: [:string, nullable: true], display_discount_total: [:string, nullable: true],
+                 tax_total: [:string, nullable: true], display_tax_total: [:string, nullable: true],
+                 included_tax_total: [:string, nullable: true], display_included_tax_total: [:string, nullable: true],
+                 additional_tax_total: [:string, nullable: true], display_additional_tax_total: [:string, nullable: true],
+                 store_credit_total: [:string, nullable: true], display_store_credit_total: [:string, nullable: true],
+                 gift_card_total: [:string, nullable: true], display_gift_card_total: [:string, nullable: true],
                  covered_by_store_credit: :boolean,
-                 total: :string, display_total: :string,
-                 amount_due: :string, display_amount_due: :string,
+                 total: [:string, nullable: true], display_total: [:string, nullable: true],
+                 amount_due: [:string, nullable: true], display_amount_due: [:string, nullable: true],
                  shipping_eq_billing_address: :boolean,
                  warnings: 'Array<{code: string, message: string, line_item_id?: string, variant_id?: string}>',
                  billing_address: { nullable: true }, shipping_address: { nullable: true },
@@ -34,23 +34,33 @@ module Spree
           order.market&.prefixed_id
         end
 
+        # Which surface this cart belongs to — lets a multi-channel storefront
+        # verify a cookie-persisted cart against its own channel before
+        # adopting it (see the wholesale reference storefront's cart guard).
+        attribute :channel_id do |order|
+          order.channel&.prefixed_id
+        end
+
         attributes :number, :token, :email, :customer_note,
-                   :currency, :locale, :total_quantity,
-                   :item_total, :display_item_total,
-                   :adjustment_total, :display_adjustment_total,
-                   :discount_total, :display_discount_total,
-                   :tax_total, :display_tax_total, :included_tax_total, :display_included_tax_total,
-                   :additional_tax_total, :display_additional_tax_total, :total, :display_total,
-                   :gift_card_total, :display_gift_card_total,
-                   :amount_due, :display_amount_due,
-                   :delivery_total, :display_delivery_total, :warnings
+                   :currency, :locale, :total_quantity, :warnings
+
+        # Nulled for gated (prices_hidden) guests so the cart can't leak the
+        # prices that product/variant serializers already withhold.
+        money_attributes :item_total, :display_item_total,
+                         :adjustment_total, :display_adjustment_total,
+                         :discount_total, :display_discount_total,
+                         :tax_total, :display_tax_total, :included_tax_total, :display_included_tax_total,
+                         :additional_tax_total, :display_additional_tax_total, :total, :display_total,
+                         :gift_card_total, :display_gift_card_total,
+                         :amount_due, :display_amount_due,
+                         :delivery_total, :display_delivery_total
 
         attribute :store_credit_total do |order|
-          order.total_applied_store_credit.to_s
+          order.total_applied_store_credit.to_s unless params[:hide_prices]
         end
 
         attribute :display_store_credit_total do |order|
-          order.display_total_applied_store_credit.to_s
+          order.display_total_applied_store_credit.to_s unless params[:hide_prices]
         end
 
         attribute :covered_by_store_credit do |order|

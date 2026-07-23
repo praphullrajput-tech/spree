@@ -8,6 +8,7 @@ import {
   resourceSearchSchema,
   Subject,
   usePermissions,
+  useStore,
 } from '@spree/dashboard-core'
 import {
   Button,
@@ -38,20 +39,24 @@ import { useEffect } from 'react'
 import { Controller, type UseFormReturn, useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { z } from 'zod/v4'
+import { OrderRoutingRulesSection } from '../../../../components/spree/order-routing-rules-section'
 import {
   useChannel,
   useCreateChannel,
   useDeleteChannel,
   useUpdateChannel,
-} from '@/hooks/use-channels'
+} from '../../../../hooks/use-channels'
 import {
   CHANNEL_DEFAULTS,
   type ChannelFormValues,
   channelFormSchema,
   channelValuesToParams,
+  GUEST_CHECKOUT_VALUES,
   ORDER_ROUTING_STRATEGY_VALUES,
-} from '@/schemas/channel'
-import '@/tables/channels'
+  RULES_ORDER_ROUTING_STRATEGY,
+  STOREFRONT_ACCESS_VALUES,
+} from '../../../../schemas/channel'
+import '../../../../tables/channels'
 
 const channelsSearchSchema = resourceSearchSchema.extend({
   edit: z.string().optional(),
@@ -235,12 +240,20 @@ function EditChannelSheet({
   const { t } = useTranslation()
   const { data: channel, isLoading } = useChannel(id)
   const updateMutation = useUpdateChannel(id)
+  const { store } = useStore()
 
   const form = useForm<ChannelFormValues>({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     resolver: zodResolver(channelFormSchema) as any,
     defaultValues: CHANNEL_DEFAULTS,
   })
+
+  // The rules editor only makes sense under the Rules strategy. Resolve the
+  // effective strategy live from the (unsaved) select value, falling back to
+  // the store-level preference for the "inherit" option.
+  const strategyOverride = form.watch('preferred_order_routing_strategy')
+  const effectiveStrategy =
+    strategyOverride || store?.preferred_order_routing_strategy || RULES_ORDER_ROUTING_STRATEGY
 
   useEffect(() => {
     if (channel) {
@@ -250,6 +263,9 @@ function EditChannelSheet({
         active: channel.active,
         default: channel.default,
         preferred_order_routing_strategy: channel.preferred_order_routing_strategy ?? '',
+        preferred_storefront_access: channel.preferred_storefront_access ?? '',
+        preferred_guest_checkout:
+          channel.preferred_guest_checkout == null ? '' : String(channel.preferred_guest_checkout),
       })
     }
   }, [channel, form])
@@ -277,6 +293,9 @@ function EditChannelSheet({
           <form onSubmit={form.handleSubmit(onSubmit)} className="flex min-h-0 flex-1 flex-col">
             <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-4">
               <ChannelFormFields form={form} />
+              {effectiveStrategy === RULES_ORDER_ROUTING_STRATEGY && (
+                <OrderRoutingRulesSection channelId={id} />
+              )}
             </div>
             <SheetFooter>
               <Button
@@ -303,17 +322,71 @@ function EditChannelSheet({
   )
 }
 
+type ChannelSelectFieldName =
+  | 'preferred_order_routing_strategy'
+  | 'preferred_storefront_access'
+  | 'preferred_guest_checkout'
+
+// One channel-preference <Select> that shares the "inherit from store" blank
+// option. Builds its own option list from `values` + the i18n `scope`
+// (`<scope>.label` / `.help` / `.inherit` / `.options.<value>`).
+function InheritableSelectField({
+  form,
+  name,
+  scope,
+  values,
+}: {
+  form: UseFormReturn<ChannelFormValues>
+  name: ChannelSelectFieldName
+  scope: string
+  values: readonly string[]
+}) {
+  const { t } = useTranslation()
+  const error = form.formState.errors[name]
+  const options = values.map((value) => ({
+    value,
+    // `nsSeparator: false` because option values can contain `::` (e.g. strategy
+    // class names), which i18next would otherwise parse as a namespace separator
+    // and miss the lookup.
+    label:
+      value === ''
+        ? t(`${scope}.inherit`)
+        : t(`${scope}.options.${value}`, {
+            nsSeparator: false,
+            defaultValue: value.replace(/^Spree::/, ''),
+          }),
+  }))
+  return (
+    <Field>
+      <FieldLabel htmlFor={name}>{t(`${scope}.label`)}</FieldLabel>
+      <Controller
+        name={name}
+        control={form.control}
+        render={({ field }) => (
+          <Select items={options} value={field.value ?? ''} onValueChange={field.onChange}>
+            <SelectTrigger id={name} className="w-full" aria-invalid={!!error || undefined}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {options.map((o) => (
+                <SelectItem key={o.value || 'inherit'} value={o.value}>
+                  {o.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+      />
+      <span className="text-xs text-muted-foreground">{t(`${scope}.help`)}</span>
+      <FieldError errors={[error]} />
+    </Field>
+  )
+}
+
 function ChannelFormFields({ form }: { form: UseFormReturn<ChannelFormValues> }) {
   const { t } = useTranslation()
   const { errors } = form.formState
 
-  const strategyOptions = ORDER_ROUTING_STRATEGY_VALUES.map((value) => ({
-    value,
-    label:
-      value === ''
-        ? t('admin.fields.channel.order_routing_strategy.inherit')
-        : t(`admin.fields.channel.order_routing_strategy.options.${value}`),
-  }))
   return (
     <FieldGroup>
       {errors.root?.message && (
@@ -385,36 +458,26 @@ function ChannelFormFields({ form }: { form: UseFormReturn<ChannelFormValues> })
         </div>
       </Field>
 
-      <Field>
-        <FieldLabel htmlFor="preferred_order_routing_strategy">
-          {t('admin.fields.channel.order_routing_strategy.label')}
-        </FieldLabel>
-        <Controller
-          name="preferred_order_routing_strategy"
-          control={form.control}
-          render={({ field }) => (
-            <Select
-              items={strategyOptions}
-              value={field.value ?? ''}
-              onValueChange={field.onChange}
-            >
-              <SelectTrigger id="preferred_order_routing_strategy" className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {strategyOptions.map((o) => (
-                  <SelectItem key={o.value || 'inherit'} value={o.value}>
-                    {o.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-        />
-        <span className="text-xs text-muted-foreground">
-          {t('admin.fields.channel.order_routing_strategy.help')}
-        </span>
-      </Field>
+      <InheritableSelectField
+        form={form}
+        name="preferred_order_routing_strategy"
+        scope="admin.fields.channel.order_routing_strategy"
+        values={ORDER_ROUTING_STRATEGY_VALUES}
+      />
+
+      <InheritableSelectField
+        form={form}
+        name="preferred_storefront_access"
+        scope="admin.fields.channel.storefront_access"
+        values={STOREFRONT_ACCESS_VALUES}
+      />
+
+      <InheritableSelectField
+        form={form}
+        name="preferred_guest_checkout"
+        scope="admin.fields.channel.guest_checkout"
+        values={GUEST_CHECKOUT_VALUES}
+      />
     </FieldGroup>
   )
 }

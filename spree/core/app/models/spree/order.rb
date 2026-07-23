@@ -360,6 +360,16 @@ module Spree
       line_items.sum(:pre_tax_amount)
     end
 
+    # Sum of the eligible promotion adjustments applied to the order itself
+    # (whole-order discounts created by Promotion::Actions::CreateAdjustment),
+    # as opposed to promotions applied to individual line items or shipments.
+    # Zero or negative.
+    #
+    # @return [BigDecimal]
+    def order_level_promo_total
+      adjustments.promotion.eligible.sum(:amount)
+    end
+
     # Sum of all line item and shipment pre-tax
     def pre_tax_total
       pre_tax_item_amount + shipments.sum(:pre_tax_amount)
@@ -511,6 +521,23 @@ module Spree
       return if channel_id.present?
 
       self.channel = store&.default_channel
+    end
+
+    # @return [Boolean] true when this order has no registered user and its
+    #   channel forbids guest checkout (see Spree::Channel::Gating). Enforced by
+    #   the checkout completion service and the v3 Store API so every completion
+    #   path (controller, payment webhook) is covered.
+    #
+    #   A +prices_hidden+ channel also disallows guest completion regardless of
+    #   the +guest_checkout+ flag — prices are withheld from guests, and a buyer
+    #   who cannot see prices cannot meaningfully place an order. This dissolves
+    #   the otherwise contradictory "prices hidden but guests may buy" config.
+    def guest_checkout_disallowed?
+      return false if user_id.present?
+      return false if channel.blank?
+      return true if channel.storefront_prices_hidden?
+
+      !channel.resolved_guest_checkout
     end
 
     def allow_cancel?

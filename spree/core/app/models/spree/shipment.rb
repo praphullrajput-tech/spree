@@ -130,6 +130,17 @@ module Spree
       cost
     end
 
+    # Strict decimal bridge for string input — raises ArgumentError on
+    # malformed values instead of letting Rails' cast silently truncate
+    # ("12 boxes" would otherwise become 12.0). Blank strings cast to nil,
+    # matching the default Rails behavior.
+    #
+    # @param value [String, Numeric, nil]
+    def cost=(value)
+      value = value.blank? ? nil : BigDecimal(value.strip) if value.is_a?(String)
+      super
+    end
+
     def digital?
       shipping_method&.digital? || false
     end
@@ -195,6 +206,15 @@ module Spree
       cost + promo_total
     end
     alias discounted_amount discounted_cost
+
+    # Returns the amount this shipment is taxed on: its discounted cost,
+    # never negative (stacked shipping promotions can push discounted_cost
+    # below zero). Whole-order promotions are not allocated to shipments.
+    #
+    # @return [BigDecimal]
+    def taxable_basis
+      [discounted_cost, BigDecimal(0)].max
+    end
 
     def final_price
       cost + adjustment_total
@@ -347,6 +367,23 @@ module Spree
       shipping_rates
     end
 
+    # Public API v3 name for the selected rate (see docs/plans/6.0-fulfillment-and-delivery.md).
+    #
+    # @return [String, nil] the selected delivery rate's prefixed ID
+    def selected_delivery_rate_id
+      selected_shipping_rate&.prefixed_id
+    end
+
+    # Selects a delivery rate by its public prefixed ID (+dr_...+); raw IDs
+    # are accepted for internal callers. The model owns this naming bridge so
+    # API clients never deal with the legacy shipping-rate name.
+    #
+    # @param id [String, Integer] delivery rate prefixed or raw ID
+    def selected_delivery_rate_id=(id)
+      rate = Spree::PrefixedId.prefixed_id?(id) ? shipping_rates.find_by_prefix_id!(id) : shipping_rates.find(id)
+      self.selected_shipping_rate_id = rate.id
+    end
+
     def selected_shipping_rate_id
       selected_shipping_rate.try(:id)
     end
@@ -422,8 +459,17 @@ module Spree
       package
     end
 
+    # External systems (3PLs, courier APIs) often hand over a complete
+    # tracking link rather than a bare tracking code — returned as-is
+    # instead of being templated into the delivery method's tracking URL.
+    #
+    # @return [String, nil]
     def tracking_url
-      @tracking_url ||= shipping_method&.build_tracking_url(tracking)
+      @tracking_url ||= if tracking&.start_with?('https://')
+                          tracking
+                        else
+                          shipping_method&.build_tracking_url(tracking)
+                        end
     end
 
     def update_amounts

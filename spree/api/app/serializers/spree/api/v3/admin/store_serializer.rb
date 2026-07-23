@@ -3,7 +3,8 @@ module Spree
     module V3
       module Admin
         class StoreSerializer < V3::BaseSerializer
-          typelize name: :string, url: :string,
+          typelize name: :string, url: :string, code: :string, api_url: :string,
+                   preferred_storefront_url: [:string, nullable: true],
                    default_currency: :string, default_locale: :string,
                    supported_currencies: [:string, multi: true],
                    supported_locales: [:string, multi: true],
@@ -18,10 +19,15 @@ module Spree
                    preferred_timezone: :string,
                    preferred_weight_unit: :string,
                    preferred_unit_system: :string,
+                   preferred_storefront_access: :string,
+                   preferred_guest_checkout: :boolean,
+                   preferred_order_routing_strategy: :string,
                    metadata: 'Record<string, unknown>'
 
           attributes :metadata,
                      :name,
+                     :code,
+                     :preferred_storefront_url,
                      :default_currency,
                      :default_locale,
                      :mail_from_address,
@@ -32,9 +38,21 @@ module Spree
                      :preferred_timezone,
                      :preferred_weight_unit,
                      :preferred_unit_system,
+                     :preferred_storefront_access,
+                     :preferred_guest_checkout,
+                     :preferred_order_routing_strategy,
                      created_at: :iso8601, updated_at: :iso8601
 
           attribute :url, &:storefront_url
+
+          # The backend's own public URL — what a headless client sets as its
+          # Store API endpoint (distinct from `url`, the storefront's URL).
+          attribute :api_url, &:formatted_url
+
+          # The Getting Started checklist in display order. Task names map to
+          # frontend copy/components by convention.
+          many :setup_tasks,
+               resource: proc { Spree.api.admin_setup_task_serializer }
 
           attribute :supported_currencies do |store|
             store.supported_currencies_list.map(&:iso_code)

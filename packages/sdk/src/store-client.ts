@@ -14,6 +14,7 @@ import type {
   Cart,
   Category,
   CategoryListParams,
+  Channel,
   CompletePaymentSessionParams,
   CompletePaymentSetupSessionParams,
   Country,
@@ -211,6 +212,18 @@ export class StoreClient {
      */
     list: (options?: RequestOptions): Promise<ListResponse<Locale>> =>
       this.request<ListResponse<Locale>>('GET', '/locales', options),
+  }
+
+  readonly channel = {
+    /**
+     * Get the channel this client's requests resolve to (API-key binding →
+     * `channel` client option → store default), including the resolved
+     * `storefront_access` posture (`public` | `prices_hidden` |
+     * `login_required`) and whether guest checkout is allowed. Reachable
+     * before authentication so gated storefronts can render a sign-in wall.
+     */
+    get: (options?: RequestOptions): Promise<Channel> =>
+      this.request<Channel>('GET', '/channel', options),
   }
 
   // ============================================
@@ -630,6 +643,34 @@ export class StoreClient {
       this.request<NewsletterSubscriber>('POST', '/newsletter_subscribers/verify', {
         ...options,
         body: params,
+      }),
+
+    /**
+     * Request an unsubscribe link for an email address. When a subscriber
+     * exists, a `newsletter_subscriber.unsubscribe_requested` webhook event
+     * fires carrying the unsubscribe token; the response is always 202 to
+     * prevent email enumeration. `redirect_url` is dropped from the webhook
+     * payload when it's not in the store's allowed origins.
+     */
+    requestUnsubscribe: (
+      params: { email: string; redirect_url?: string },
+      options?: RequestOptions,
+    ): Promise<void> =>
+      this.request<void>('POST', '/newsletter_subscribers/request_unsubscribe', {
+        ...options,
+        body: params,
+      }),
+
+    /**
+     * Unsubscribe from the newsletter. Pass a JWT via `options.token` for a
+     * signed-in customer removing their own subscription (its id comes from
+     * `customer.newsletter_subscriber` on GET /customers/me), or
+     * `params.token` with the unsubscribe token from an email link.
+     */
+    delete: (id: string, params?: { token?: string }, options?: RequestOptions): Promise<void> =>
+      this.request<void>('DELETE', `/newsletter_subscribers/${id}`, {
+        ...options,
+        params: params?.token ? { token: params.token } : undefined,
       }),
   }
 

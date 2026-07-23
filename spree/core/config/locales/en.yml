@@ -666,6 +666,20 @@ en:
     adjustments: Adjustments
     adjustments_deleted: Adjustments Deleted
     admin_locale: Admin locale
+    admin_user_mailer:
+      confirmation_email:
+        action: Confirm Email
+        greeting: Hi %{name},
+        ignore_notice: If you did not create this account, you can safely ignore this email.
+        instructions: Please confirm the email address for your %{store_name} admin account by clicking the button below.
+        subject: Email Confirmation Instructions
+      password_reset_email:
+        action: Reset Password
+        expiry_notice: This password reset link will expire shortly. If you did not request this, no action is needed.
+        greeting: Hi %{name},
+        ignore_notice: If you did not request a password reset, you can safely ignore this email. Your password will not be changed.
+        instructions: We received a request to reset the password for your %{store_name} admin account. Click the button below to choose a new password.
+        subject: Password Reset Instructions
     administration: Administration
     advertise: Advertise
     all: All
@@ -677,6 +691,9 @@ en:
     analytics: Analytics
     and: and
     api_key: API Key
+    api_key_channel_immutable: cannot be changed after the key is created; create a new key bound to the channel you need and revoke this one
+    api_key_channel_must_belong_to_store: must belong to the same store as the key
+    api_key_channel_publishable_only: can only be set on publishable keys
     api_key_no_current_key: No API key authenticated this request
     api_key_scopes_immutable: cannot be changed after the key is created; create a new key with the scopes you need and revoke this one
     api_keys: API Keys
@@ -820,6 +837,7 @@ en:
         greeting: Hi %{name},
         ignore_notice: If you did not request a password reset, you can safely ignore this email. Your password will not be changed.
         instructions: We received a request to reset your password. Click the button below to choose a new password.
+        subject: Password Reset Instructions
     customer_return: Customer Return
     customer_returns: Customer Returns
     customer_support_email: Customer Support Email
@@ -898,10 +916,12 @@ en:
     error_user_does_not_have_any_store_credits: User does not have any Store Credits available
     errors:
       messages:
+        cannot_delete_channel_with_active_api_keys: Channel cannot be deleted while active API keys are bound to it. Revoke those keys first.
         cannot_delete_default_channel: Default channel cannot be deleted. Promote another channel to default first.
         channel_store_mismatch: must belong to the same store
         invalid_order_routing_rule: is not a registered order routing rule
         invalid_order_routing_strategy: is not a registered order routing strategy
+        invalid_storefront_access: is not a valid storefront access level
         must_be_origin_only: must be an origin (scheme and host) without path, query, or fragment
         store_association_can_not_be_changed: The store association can not be changed
         store_is_already_set: Store is already set
@@ -946,6 +966,15 @@ en:
     free_shipping: Free Shipping
     from: From
     front_end: Front End
+    fulfillments:
+      errors:
+        insufficient_quantity: Requested quantity (%{requested}) for item %{item} exceeds its unfulfilled quantity (%{available})
+        invalid_cost: cost must be a non-negative number
+        invalid_quantity: Quantity for item %{item} must be a positive integer
+        invalid_status: status must be 'shipped' when provided
+        no_items_to_fulfill: Order has no unfulfilled items
+        order_canceled: Fulfillments cannot be created on a canceled order
+        order_not_completed: Fulfillments can only be created manually on completed orders
     gateway: Gateway
     gateway_error: Gateway Error
     general: General
@@ -963,6 +992,7 @@ en:
     gift_card_using_store_credit_error: You can't apply the Gift Card after you applied the store credit.
     gift_cards: Gift Cards
     guest_checkout: Guest Checkout
+    guest_checkout_not_allowed: You must be signed in to complete checkout.
     has_no_shipped_units: has no shipped units
     height: Height
     hide: Hide
@@ -977,6 +1007,13 @@ en:
     implement_eligible_for_return: 'Must implement #eligible_for_return? for your EligibilityValidator.'
     implement_requires_manual_intervention: 'Must implement #requires_manual_intervention? for your EligibilityValidator.'
     import: Import
+    import_mailer:
+      greeting: Hi %{user_name},
+      import_done:
+        failed_message: "%{failed_count} rows could not be imported — review and retry them from the import report."
+        message: Your import has finished. %{completed_count} rows were imported successfully.
+        subject: Your import %{import_number} has finished processing
+        view_results: View import report
     in_stock: In Stock
     inactive: Inactive
     incl: incl.
@@ -1153,6 +1190,16 @@ en:
       strategies:
         legacy: Legacy
         rules: Rules (ordered)
+    order_routing_rule_types:
+      default_location:
+        description: Prefer the stock location marked as default
+        name: Default location
+      minimize_splits:
+        description: Prefer the location that can fulfill the most items on its own, avoiding split shipments
+        name: Minimize splits
+      preferred_location:
+        description: Fulfill from the location pinned on the order, when one is set
+        name: Preferred location
     order_summary: Order Summary
     order_total: Order Total
     orders: Orders

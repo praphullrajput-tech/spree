@@ -17,9 +17,15 @@ module Spree
   class WebhookEventSubscriber < Spree::Subscriber
     subscribes_to '*'
 
+    # Admin auth events carry live credentials (password reset tokens) and have
+    # no legitimate external consumer — core delivers those emails itself.
+    # Never forward them to webhook endpoints, including '*' subscriptions.
+    NON_DELIVERABLE_EVENTS = %w[admin_user.password_reset_requested].freeze
+
     def handle(event)
       return unless Spree::Api::Config.webhooks_enabled
       return if event.store_id.blank?
+      return if NON_DELIVERABLE_EVENTS.include?(event.name)
 
       # Only load the columns we need for matching and delivery
       endpoints = Spree::WebhookEndpoint
@@ -50,13 +56,16 @@ module Spree
         )
       end
 
+      # Live credentials go over the wire but never into the delivery log.
+      persisted_payload, secrets = Spree::WebhookPayloadRedaction.split(payload)
+
       delivery = endpoint.webhook_deliveries.create!(
         event_name: event.name,
         event_id: event.id,
-        payload: payload
+        payload: persisted_payload
       )
 
-      Spree::WebhookDeliveryJob.perform_later(delivery.id)
+      Spree::WebhookDeliveryJob.perform_later(delivery.id, payload_secrets: secrets)
     rescue ActiveRecord::RecordNotUnique
       # Race condition: another thread already created this delivery — safe to ignore
     rescue StandardError => e

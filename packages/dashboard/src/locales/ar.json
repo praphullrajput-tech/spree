@@ -89,6 +89,13 @@
       "app_name": "Spree Admin",
       "powered_by": "مدعوم من Spree Commerce"
     },
+    "errors": {
+      "not_found_title": "الصفحة غير موجودة",
+      "not_found_description": "الصفحة التي تبحث عنها غير موجودة.",
+      "forbidden_title": "غير مصرح",
+      "forbidden_description": "ليس لديك إذن لعرض هذه الصفحة.",
+      "plugin_route_title": "تعذّر عرض هذه الصفحة"
+    },
     "nav": {
       "home": "الرئيسية",
       "account": "الحساب",
@@ -104,14 +111,16 @@
       "promotions": "العروض الترويجية",
       "gift_cards": "بطاقات الهدايا",
       "reports": "التقارير",
-      "settings": "الإعدادات"
+      "settings": "الإعدادات",
+      "getting_started": "البدء"
     },
     "settings_nav": {
       "groups": {
         "store": "المتجر",
         "payments": "المدفوعات والضرائب",
         "fulfillment": "التنفيذ",
-        "team": "الفريق والوصول"
+        "team": "الفريق والوصول",
+        "audit": "التدقيق"
       },
       "items": {
         "store": "المتجر",
@@ -126,7 +135,8 @@
         "api_keys": "مفاتيح API",
         "webhooks": "Webhooks",
         "allowed_origins": "المصادر المسموح بها",
-        "profile": "الملف الشخصي"
+        "profile": "الملف الشخصي",
+        "imports": "عمليات الاستيراد"
       }
     },
     "fields": {
@@ -279,6 +289,25 @@
             "Spree::OrderRouting::Strategy::Rules": "Rules (ordered)",
             "Spree::OrderRouting::Strategy::Legacy": "Legacy"
           }
+        },
+        "storefront_access": {
+          "label": "الوصول إلى المتجر",
+          "help": "يتحكم في ما يراه الزوار غير المسجّلين في هذه القناة. اتركه فارغًا للاستناد إلى إعداد المتجر. عند إخفاء الأسعار، يجب على الضيوف تسجيل الدخول لإتمام الشراء.",
+          "inherit": "التوريث من المتجر",
+          "options": {
+            "public": "عام — يمكن للجميع التصفّح ورؤية الأسعار",
+            "prices_hidden": "الأسعار مخفية — يجب على الزوار تسجيل الدخول لرؤية الأسعار",
+            "login_required": "تسجيل الدخول مطلوب — يجب على الزوار تسجيل الدخول للتصفّح"
+          }
+        },
+        "guest_checkout": {
+          "label": "الدفع كضيف",
+          "help": "ما إذا كان بإمكان المتسوّقين إتمام الشراء دون حساب في هذه القناة. اتركه فارغًا للاستناد إلى إعداد المتجر.",
+          "inherit": "التوريث من المتجر",
+          "options": {
+            "true": "مسموح",
+            "false": "غير مسموح"
+          }
         }
       },
       "invitation_acceptance": {
@@ -345,6 +374,12 @@
         "channels": {
           "label": "قنوات البيع",
           "help": "اتركه فارغًا لتطبيق هذه القاعدة على كل قناة بيع."
+        },
+        "min_quantity": {
+          "help": "يُطبَّق هذا السعر فقط عندما يطلب العميل هذا العدد على الأقل من صنف واحد."
+        },
+        "max_quantity": {
+          "help": "اتركه فارغًا لعدم وجود حد أقصى."
         }
       },
       "stock_location": {
@@ -504,6 +539,20 @@
         },
         "dimensions_unit": {
           "label": "الوحدة"
+        },
+        "preorderable": {
+          "label": "متاح للطلب المسبق",
+          "help": "بِع هذا الخيار قبل توفره في المخزون. حدِّد العدد عبر حد الطلبات المتأخرة، أو أدخل المخزون الوارد ككمية، أو اتركه فارغًا لعدد غير محدود."
+        },
+        "preorder_ships_at": {
+          "label": "الشحن بحلول",
+          "placeholder": "اختر تاريخًا",
+          "help": "موعد شحنك المتوقع للطلبات المسبقة. يظهر للعملاء كوعد بالتسليم؛ وينتهي الطلب المسبق بمجرد مرور هذا التاريخ."
+        },
+        "backorder_limit": {
+          "label": "حد الطلبات المتأخرة",
+          "placeholder": "غير محدود",
+          "help": "الحد الأقصى لعدد الوحدات المباعة بما يتجاوز المخزون المتاح — يحدّ الطلبات المتأخرة والطلبات المسبقة. اتركه فارغًا لعدد غير محدود."
         }
       },
       "api_key": {
@@ -517,6 +566,11 @@
         },
         "scopes": {
           "label": "Scopes"
+        },
+        "channel": {
+          "label": "Channel",
+          "help": "Binding locks this key to one channel — a bound key rejects requests for other channels. Leave on 'All channels' for a store-wide key.",
+          "all_channels": "All channels"
         }
       },
       "store": {
@@ -536,6 +590,19 @@
         },
         "preferred_weight_unit": {
           "label": "وحدة الوزن"
+        },
+        "storefront_access": {
+          "label": "الوصول إلى المتجر",
+          "help": "الإعداد الافتراضي على مستوى المتجر لما يراه الزوار غير المسجّلين. يمكن للقنوات تجاوزه. عند إخفاء الأسعار، يجب على الضيوف تسجيل الدخول لإتمام الشراء.",
+          "options": {
+            "public": "عام — يمكن للجميع التصفّح ورؤية الأسعار",
+            "prices_hidden": "الأسعار مخفية — يجب على الزوار تسجيل الدخول لرؤية الأسعار",
+            "login_required": "تسجيل الدخول مطلوب — يجب على الزوار تسجيل الدخول للتصفّح"
+          }
+        },
+        "guest_checkout": {
+          "label": "الدفع كضيف",
+          "help": "الإعداد الافتراضي على مستوى المتجر لما إذا كان بإمكان المتسوّقين إتمام الشراء دون حساب. يمكن للقنوات تجاوزه."
         },
         "mail_from_address": {
           "label": "عنوان المرسل",
@@ -709,6 +776,10 @@
         },
         "last_name": {
           "label": "اسم العائلة"
+        },
+        "avatar": {
+          "label": "الصورة",
+          "help": "تظهر بجوار اسمك في جميع أنحاء لوحة الإدارة. الصور المربعة تبدو أفضل."
         },
         "selected_locale": {
           "label": "اللغة",
@@ -1058,6 +1129,19 @@
           "title": "هل تريد حذف قناة المبيعات؟",
           "message": "ستتم إزالة {{name}}. ستفقد المنتجات والأوامر المرتبطة بها مرجع قناة المبيعات الخاصة بها."
         },
+        "order_routing_rules": {
+          "title": "قواعد توجيه الطلبات",
+          "help": "عند استخدام استراتيجية التوجيه «قواعد (مرتبة)»، تُقيَّم القواعد من الأعلى إلى الأسفل — تفوز أول قاعدة تحدد موقع مخزون واحدًا، وعند التعادل تُحسم بالقاعدة التالية.",
+          "empty": "لا توجد قواعد توجيه — تُوجَّه الطلبات إلى موقع المخزون الافتراضي.",
+          "add_cta": "إضافة قاعدة",
+          "picker_title": "إضافة قاعدة توجيه",
+          "edit_preferences": "تعديل إعدادات القاعدة",
+          "active_toggle": "القاعدة مفعّلة",
+          "delete_confirm": {
+            "title": "حذف قاعدة التوجيه؟",
+            "message": "ستتم إزالة {{name}} من ترتيب التوجيه لهذه القناة."
+          }
+        },
         "search_placeholder": "البحث في قنوات البيع…",
         "no_channels_found": "لم يتم العثور على قنوات البيع",
         "validation": {
@@ -1127,6 +1211,7 @@
           },
           "empty_payments": "لا توجد مدفوعات حتى الآن.",
           "empty_shipments": "لا توجد شحنات حتى الآن.",
+          "no_delivery_method": "لم يتم اختيار طريقة توصيل.",
           "empty_history": "لا يوجد تاريخ بعد.",
           "actions": {
             "approve": "يعتمد",
@@ -1374,7 +1459,8 @@
           "title": "إعدادات المتجر",
           "subtitle": "التكوين العام والإعدادات الافتراضية على مستوى المتجر.",
           "tab_general": "عام",
-          "tab_standards": "المعايير والأشكال"
+          "tab_standards": "المعايير والأشكال",
+          "tab_storefront_access": "الوصول إلى المتجر"
         },
         "emails": {
           "title": "إعدادات Email",
@@ -1528,7 +1614,9 @@
           "table": {
             "key": "Key",
             "scopes": "Scopes",
-            "last_used_at": "آخر استخدام"
+            "last_used_at": "آخر استخدام",
+            "channel": "Channel",
+            "all_channels": "All channels"
           },
           "save_secret_title": "احفظ مفتاحك السري",
           "save_secret_description": "انسخ هذه القيمة الآن، ولن نعرضها مرة أخرى.",
@@ -1561,6 +1649,22 @@
         "allowed_origins": {
           "add_sheet_title": "أضف الأصل المسموح به",
           "edit_sheet_title": "تحرير الأصل المسموح به"
+        },
+        "imports": {
+          "title": "عمليات الاستيراد",
+          "search_placeholder": "البحث بالرقم…",
+          "empty_title": "لا توجد عمليات استيراد بعد",
+          "table": {
+            "number": "الرقم",
+            "type": "النوع",
+            "status": "الحالة",
+            "rows": "الصفوف",
+            "failed_count": "{{failed}} فشلت"
+          },
+          "delete_confirm": {
+            "title": "حذف الاستيراد؟",
+            "message": "سيؤدي هذا إلى إزالة {{number}} وصفوفه والملف المرفوع."
+          }
         }
       },
       "promotions": {
@@ -1613,6 +1717,58 @@
         "subtitle": "إدارة بياناتك الشخصية ولغة الإدارة.",
         "personal_details": "البيانات الشخصية",
         "load_failed_title": "تعذر تحميل ملفك الشخصي"
+      },
+      "getting_started": {
+        "title": "البدء",
+        "description": "أكمل هذه الخطوات لإطلاق متجرك.",
+        "progress": "اكتمل {{done}} من {{total}}",
+        "tasks": {
+          "setup_payment_method": {
+            "title": "إعداد طرق الدفع",
+            "description": "لاستلام المدفوعات، قم بإعداد مزود دفع إلكتروني واحد على الأقل.",
+            "cta": "إعداد المدفوعات"
+          },
+          "add_products": {
+            "title": "إضافة المنتجات",
+            "description": "أضف منتجات إلى متجرك — منتجاتك الخاصة أو ادعُ بائعين خارجيين للبيع معًا.",
+            "cta": "إضافة المنتجات",
+            "import_cta": "استيراد المنتجات من CSV"
+          },
+          "set_customer_support_email": {
+            "title": "تعيين البريد الإلكتروني لدعم العملاء",
+            "description": "يظهر في متجرك كنقطة اتصال لأسئلة العملاء والدعم.",
+            "cta": "إعدادات البريد الإلكتروني"
+          },
+          "setup_taxes_collection": {
+            "title": "إعداد تحصيل الضرائب",
+            "description": "لتحصيل الضرائب، قم بإعداد معدلات الضرائب.",
+            "cta": "إعدادات الضرائب"
+          },
+          "setup_storefront": {
+            "title": "إعداد المتجر",
+            "description": "اربط متجرك الإلكتروني أو تطبيقك للجوال باستخدام بيانات اعتماد Store API واحفظ عنوان URL لمتجرك.",
+            "cta": "ربط المتجر"
+          }
+        },
+        "storefront_sheet": {
+          "title": "اربط متجرك",
+          "description": "استخدم بيانات الاعتماد هذه في أي عميل يتواصل مع Store API — متجر ويب أو تطبيق جوال أو أي شيء آخر.",
+          "api_url_label": "عنوان URL لـ Store API",
+          "publishable_key_label": "مفتاح API القابل للنشر",
+          "deploy_title": "موصى به: انشر متجر Next.js الرسمي",
+          "deploy_copy": "يستنسخ النشر المتجر مفتوح المصدر إلى حساب Git الخاص بك ويبنيه على Vercel مع تعبئة بيانات الاعتماد مسبقًا. بعد الانتهاء، انسخ عنوان URL الخاص به في الحقل أدناه.",
+          "deploy_button": "النشر على Vercel",
+          "env_description": "عنوان URL لـ Spree Store API ومفتاحك القابل للنشر. كلاهما معبأ مسبقًا من متجرك — عدّلهما قبل النشر إذا لزم الأمر.",
+          "storefront_url_label": "عنوان URL للمتجر",
+          "storefront_url_help": "عنوان URL الذي يستخدمه العملاء للوصول إلى متجرك. يصبح الأساس للروابط في رسائل البريد الإلكتروني للعملاء ويُضاف تلقائيًا كأصل مسموح به حتى تتمكن المتاجر المستندة إلى المتصفح من استدعاء Store API.",
+          "save": "احفظ وأكمل الإعداد",
+          "saved": "تم حفظ عنوان URL للمتجر: {{url}}",
+          "invalid_url": "لا يبدو هذا عنوان URL صالحًا للمتجر.",
+          "see_online_demo": "شاهد العرض التوضيحي عبر الإنترنت",
+          "local_installation_instructions": "تعليمات التثبيت المحلي",
+          "key_error": "تعذر تحميل مفتاح API القابل للنشر.",
+          "storefront_url_placeholder": "https://myshop.com"
+        }
       }
     },
     "invitation": {
@@ -2106,6 +2262,7 @@
         "keep": "احتفظ بالكل",
         "sheet": {
           "identity": "هوية",
+          "availability": "التوفر",
           "tax_category_placeholder": "ترث من المنتج"
         },
         "errors": {
@@ -2362,13 +2519,35 @@
       "base_amount": "Base Amount",
       "base_percent": "Base Percent",
       "preferred_amount": "كمية",
-      "preferred_percent": "نسبة مئوية"
+      "preferred_percent": "نسبة مئوية",
+      "min_quantity": "الحد الأدنى للكمية",
+      "max_quantity": "الحد الأقصى للكمية"
     },
     "channels": {
       "messages": {
         "created": "تم إنشاء القناة",
         "updated": "تم تحديث القناة",
         "deleted": "تم حذف القناة"
+      }
+    },
+    "order_routing_rules": {
+      "messages": {
+        "created": "تمت إضافة قاعدة التوجيه",
+        "deleted": "تمت إزالة قاعدة التوجيه"
+      },
+      "types": {
+        "preferred_location": {
+          "name": "الموقع المفضل",
+          "description": "الشحن من الموقع المثبّت على الطلب إن وُجد"
+        },
+        "minimize_splits": {
+          "name": "تقليل تقسيم الشحنات",
+          "description": "يفضّل الموقع القادر على تلبية أكبر عدد من العناصر بمفرده لتجنّب تقسيم الشحنات"
+        },
+        "default_location": {
+          "name": "الموقع الافتراضي",
+          "description": "يفضّل موقع المخزون المحدد كافتراضي"
+        }
       }
     },
     "customer_groups": {
@@ -2483,6 +2662,70 @@
         "no_matches": "لا توجد منتجات تطابق عامل التصفية."
       },
       "load_failed": "فشل تحميل الفئات. يرجى المحاولة مرة أخرى."
+    },
+    "imports": {
+      "download_original": "تنزيل الملف الأصلي",
+      "load_failed": "تعذّر تحميل الاستيراد.",
+      "try_again": "حاول مرة أخرى",
+      "wizard_title": "الاستيراد",
+      "steps": {
+        "map_fields": "مطابقة الحقول",
+        "process_rows": "معالجة الصفوف",
+        "complete": "اكتمل"
+      },
+      "status": {
+        "pending": "قيد الانتظار",
+        "mapping": "المطابقة",
+        "completed_mapping": "في قائمة الانتظار",
+        "processing": "قيد المعالجة",
+        "completed": "مكتمل",
+        "failed": "فشل"
+      },
+      "types": {
+        "products": "المنتجات",
+        "customers": "العملاء",
+        "product_translations": "ترجمات المنتجات"
+      },
+      "mapping": {
+        "title": "مطابقة الأعمدة",
+        "description": "طابق أعمدة ملفك مع حقول {{type}}.",
+        "field": "الحقل",
+        "file_column": "عمود الملف",
+        "sample": "مثال",
+        "not_mapped": "غير مطابق",
+        "required": "مطلوب",
+        "missing_required": "طابق الحقول المطلوبة للمتابعة: {{fields}}",
+        "start": "بدء الاستيراد",
+        "starting": "جارٍ البدء…"
+      },
+      "processing": {
+        "title": "جارٍ معالجة الصفوف",
+        "preparing": "جارٍ تجهيز الصفوف…",
+        "progress": "تمت معالجة {{processed}} من {{total}} صفًا",
+        "failed_count": "{{failed}} فشلت",
+        "retrying": "إعادة محاولة الصفوف الفاشلة · {{remaining}} متبقية",
+        "note": "يمكنك مغادرة هذه الصفحة — سيستمر الاستيراد في الخلفية."
+      },
+      "results": {
+        "completed_title": "اكتمل الاستيراد",
+        "summary": "تم استيراد {{completed}} صفًا · {{failed}} فشلت",
+        "retry_failed": "إعادة محاولة الصفوف الفاشلة ({{failed}})",
+        "retrying": "جارٍ إعادة المحاولة…",
+        "view_records": "عرض {{type}}"
+      },
+      "failed": {
+        "title": "فشل الاستيراد",
+        "description": "تعذّرت معالجة الملف."
+      },
+      "failed_rows": {
+        "next_page": "الصفحة التالية",
+        "prev_page": "الصفحة السابقة",
+        "title": "الصفوف الفاشلة",
+        "row_number": "الصف",
+        "error": "الخطأ",
+        "view_data": "عرض بيانات الصف",
+        "hide_data": "إخفاء بيانات الصف"
+      }
     }
   }
 }

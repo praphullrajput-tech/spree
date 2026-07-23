@@ -7,6 +7,15 @@ export interface StoreUpdateParams {
   preferred_timezone?: string
   preferred_weight_unit?: string
   preferred_unit_system?: string
+  /**
+   * Store-wide default storefront posture: `public`, `prices_hidden`, or
+   * `login_required`. Channels fall back to this when they don't set their own.
+   */
+  preferred_storefront_access?: string
+  /** The storefront's public URL — base for customer-email links; saving it also completes the storefront setup task. */
+  preferred_storefront_url?: string | null
+  /** Store-wide default for guest checkout. Channels fall back to this. */
+  preferred_guest_checkout?: boolean
   /** Sender address used on all transactional emails (required by the model). */
   mail_from_address?: string
   /** Customer-facing reply-to address shown in the storefront/email footer. */
@@ -83,7 +92,39 @@ export interface RefundCreateParams {
   refund_reason_id?: string
 }
 
+export interface FulfillmentCreateParams {
+  /** Stock location the fulfillment ships from */
+  stock_location_id: string
+  /**
+   * Carrier tracking number, or a full `https://` tracking link — a full URL
+   * is served back as `tracking_url` unchanged instead of being templated
+   * into the delivery method's tracking URL.
+   */
+  tracking?: string
+  /**
+   * Delivery method (carrier) attached as the selected rate. Defaults to the
+   * delivery method of the fully drained source fulfillment(s).
+   */
+  delivery_method_id?: string
+  /**
+   * Explicit shipping cost (e.g. the 3PL price) as a plain decimal string or
+   * number, e.g. `'7.42'` — malformed values are rejected with a 422.
+   * Defaults to the summed cost of the fully drained source fulfillment(s),
+   * which keeps the order total unchanged — an explicit cost changes the
+   * order total and payment state. Guaranteed to persist only with
+   * `status: 'shipped'`; pending fulfillments are re-priced by the rate
+   * engine.
+   */
+  cost?: string | number
+  /** Pass 'shipped' to register an already-shipped external fulfillment */
+  status?: 'shipped'
+  /** Line item quantities to fulfill; omit to fulfill every not-yet-shipped unit */
+  items?: Array<{ item_id: string; quantity: number }>
+  metadata?: Record<string, unknown>
+}
+
 export interface FulfillmentUpdateParams {
+  /** Carrier tracking number or a full `https://` tracking link; see {@link FulfillmentCreateParams.tracking} */
   tracking?: string
   selected_delivery_rate_id?: string
 }
@@ -359,6 +400,17 @@ export interface ProductVariantInput {
   weight_unit?: string
   dimensions_unit?: string
   track_inventory?: boolean
+  /** Sell this variant before it's in stock ("Pre-order"). This adds the
+   *  pre-order label + ships-by promise; the cap comes from `backorder_limit`,
+   *  an incoming stock count, or backorder. */
+  preorderable?: boolean
+  /** The "ships by" date shown to customers while the variant is a pre-order
+   *  (ISO 8601). Once it passes, the variant is no longer treated as a
+   *  pre-order. Null clears it. */
+  preorder_ships_at?: string | null
+  /** Maximum units sellable beyond available stock — caps backorders and
+   *  pre-orders. Null = unlimited. */
+  backorder_limit?: number | null
   tax_category_id?: string
   position?: number
   barcode?: string
@@ -449,6 +501,9 @@ export interface VariantCreateParams {
   weight_unit?: string
   dimensions_unit?: string
   track_inventory?: boolean
+  preorderable?: boolean
+  preorder_ships_at?: string | null
+  backorder_limit?: number | null
   tax_category_id?: string
   position?: number
   barcode?: string
@@ -477,6 +532,9 @@ export interface VariantUpdateParams {
   weight_unit?: string
   dimensions_unit?: string
   track_inventory?: boolean
+  preorderable?: boolean
+  preorder_ships_at?: string | null
+  backorder_limit?: number | null
   tax_category_id?: string
   position?: number
   barcode?: string
@@ -518,6 +576,12 @@ export interface ApiKeyCreateParams {
   key_type: 'publishable' | 'secret'
   /** Required for `key_type: 'secret'`. See `Spree::ApiKey::SCOPES` for the full list. */
   scopes?: string[]
+  /**
+   * Prefixed channel ID (`ch_…`) to bind a **publishable** key to a single
+   * channel of the same store. Create-only and immutable afterwards; a bound
+   * key rejects requests for other channels. Omit for a store-wide key.
+   */
+  channel_id?: string
 }
 
 export interface ApiKeyUpdateParams {
@@ -546,6 +610,23 @@ export interface InvitationAcceptParams {
   last_name?: string
 }
 
+/** Body for requesting a password reset email. */
+export interface PasswordResetRequestParams {
+  email: string
+  /**
+   * Page the emailed reset link should point at (the reset token is appended
+   * as a `token` query param). Must match one of the store's allowed origins,
+   * otherwise it is ignored and the server-side default is used.
+   */
+  redirect_url?: string
+}
+
+/** Body for consuming a password reset token and setting the new password. */
+export interface PasswordResetParams {
+  password: string
+  password_confirmation: string
+}
+
 export interface AdminUserUpdateParams {
   first_name?: string
   last_name?: string
@@ -559,6 +640,11 @@ export interface MeUpdateParams {
   selected_locale?: string
   first_name?: string
   last_name?: string
+  /**
+   * ActiveStorage direct-upload signed id to set the avatar, or `null` to
+   * remove it. Omit to leave the current photo unchanged.
+   */
+  avatar?: string | null
 }
 
 export interface StockLocationCreateParams {
@@ -730,6 +816,16 @@ export interface ChannelCreateParams {
    * to inherit the store-level preference.
    */
   preferred_order_routing_strategy?: string | null
+  /**
+   * Storefront access posture: `public`, `prices_hidden`, or `login_required`.
+   * `null` (or an empty string) inherits the store-level preference.
+   */
+  preferred_storefront_access?: string | null
+  /**
+   * Whether guest checkout is allowed on this channel. `null` inherits the
+   * store-level preference.
+   */
+  preferred_guest_checkout?: boolean | null
 }
 
 export interface ChannelUpdateParams {
@@ -738,6 +834,16 @@ export interface ChannelUpdateParams {
   active?: boolean
   default?: boolean
   preferred_order_routing_strategy?: string | null
+  /**
+   * Storefront access posture: `public`, `prices_hidden`, or `login_required`.
+   * `null` (or an empty string) inherits the store-level preference.
+   */
+  preferred_storefront_access?: string | null
+  /**
+   * Whether guest checkout is allowed on this channel. `null` inherits the
+   * store-level preference.
+   */
+  preferred_guest_checkout?: boolean | null
 }
 
 export interface CustomerGroupUpdateParams {
@@ -1003,6 +1109,51 @@ export interface ExportCreateParams {
    * server and exports every record in scope.
    */
   record_selection?: 'filtered' | 'all'
+  /**
+   * Absolute URL of your admin's exports view; the export-done email uses it
+   * as the download button target. Only honored when it matches one of the
+   * store's configured allowed origins.
+   */
+  results_url?: string
+}
+
+export type ImportType =
+  | 'Spree::Imports::Products'
+  | 'Spree::Imports::Customers'
+  | 'Spree::Imports::ProductTranslations'
+  | (string & {})
+
+export interface ImportCreateParams {
+  /** Which dataset to import. Server validates against `Spree::Import.available_types`. */
+  type: ImportType
+  /**
+   * ActiveStorage signed blob id of the uploaded CSV, obtained from
+   * `client.directUploads.create()` (or the `useDirectUpload` hook).
+   */
+  attachment: string
+  /** CSV column separator. Defaults to a comma on the server. */
+  preferred_delimiter?: ',' | ';' | '|' | '\t'
+  /**
+   * Absolute URL of the dashboard's imports view; the import-done email
+   * links back to it with `?import=<id>` appended. Only honored when it
+   * matches one of the store's configured allowed origins.
+   */
+  results_url?: string
+}
+
+export interface ImportMappingParam {
+  /** Canonical schema field name (see `Import.schema_fields[].name`). */
+  schema_field: string
+  /** CSV header to read the field from; `null` unmaps the field. */
+  file_column: string | null
+}
+
+export interface ImportCompleteMappingParams {
+  /**
+   * Column assignments to apply before processing starts. Omit to accept
+   * the auto-assigned mappings from the create response.
+   */
+  mappings?: ImportMappingParam[]
 }
 
 /**
@@ -1156,6 +1307,22 @@ export interface PromotionActionUpdateParams {
   preferences?: Record<string, unknown>
   calculator?: PromotionActionCalculatorParams
   line_items?: PromotionActionLineItemParams[]
+}
+
+export interface OrderRoutingRuleCreateParams {
+  /** Wire shorthand for the rule subclass (e.g. `'preferred_location'`), from `GET /order_routing_rules/types`. */
+  type: string
+  active?: boolean
+  /** 1-based priority in the channel's rule list. Omit to append at the end. */
+  position?: number
+  preferences?: Record<string, unknown>
+}
+
+export interface OrderRoutingRuleUpdateParams {
+  active?: boolean
+  /** Assigning a new position reorders the rest of the channel's list around it. */
+  position?: number
+  preferences?: Record<string, unknown>
 }
 
 export interface PromotionRuleCreateParams {

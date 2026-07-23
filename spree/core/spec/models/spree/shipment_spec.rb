@@ -283,6 +283,20 @@ describe Spree::Shipment, type: :model do
     expect(shipment.discounted_cost).to eq(9)
   end
 
+  describe '#taxable_basis' do
+    let(:shipment) { create(:shipment).tap { |s| s.cost = 10 } }
+
+    it 'is the discounted cost' do
+      shipment.promo_total = -1
+      expect(shipment.taxable_basis).to eq(9)
+    end
+
+    it 'never goes below zero when discounts exceed the cost' do
+      shipment.promo_total = -15
+      expect(shipment.taxable_basis).to eq(0)
+    end
+  end
+
   it '#tax_total with included taxes' do
     shipment = Spree::Shipment.new
     expect(shipment.tax_total).to eq(0)
@@ -947,6 +961,52 @@ describe Spree::Shipment, type: :model do
     end
   end
 
+  describe '#cost=' do
+    it 'parses well-formed decimal strings' do
+      shipment = build(:shipment, order: nil, stock_location: nil, cost: '7.42')
+
+      expect(shipment.cost).to eq(BigDecimal('7.42'))
+    end
+
+    it 'raises on malformed strings instead of truncating them' do
+      expect { build(:shipment, order: nil, stock_location: nil, cost: '12 boxes') }.
+        to raise_error(ArgumentError)
+    end
+
+    it 'casts blank strings to the zero default' do
+      shipment = build(:shipment, order: nil, stock_location: nil, cost: '')
+      shipment.valid?
+
+      expect(shipment.cost).to eq(0)
+    end
+  end
+
+  describe '#selected_delivery_rate_id / #selected_delivery_rate_id=' do
+    let(:order) { create(:order_with_line_items, line_items_count: 1) }
+    let(:shipment) { order.shipments.first }
+    let(:rate) { create(:shipping_rate, shipment: shipment, cost: 20, selected: false) }
+
+    it 'selects a rate by its prefixed ID and reads back the prefixed ID' do
+      shipment.selected_delivery_rate_id = rate.prefixed_id
+
+      expect(shipment.reload.selected_shipping_rate).to eq(rate)
+      expect(shipment.selected_delivery_rate_id).to eq(rate.prefixed_id)
+    end
+
+    it 'selects a rate by its raw ID' do
+      shipment.selected_delivery_rate_id = rate.id
+
+      expect(shipment.reload.selected_shipping_rate).to eq(rate)
+    end
+
+    it "raises for a rate that doesn't belong to the shipment" do
+      foreign_rate = create(:shipping_rate)
+
+      expect { shipment.selected_delivery_rate_id = foreign_rate.prefixed_id }.
+        to raise_error(ActiveRecord::RecordNotFound)
+    end
+  end
+
   context 'after_save' do
     context 'line item changes' do
       before do
@@ -993,6 +1053,19 @@ describe Spree::Shipment, type: :model do
       shipment.tracking = '1Z12345'
 
       expect(shipment.tracking_url).to eq(:some_url)
+    end
+
+    it 'returns the tracking value as-is when it is already a full URL' do
+      expect(shipping_method).not_to receive(:build_tracking_url)
+      shipment.tracking = 'https://tracking.example.com/parcels/1Z12345'
+
+      expect(shipment.tracking_url).to eq('https://tracking.example.com/parcels/1Z12345')
+    end
+
+    it 'returns a full-URL tracking value without a shipping method' do
+      shipment = described_class.new(tracking: 'https://tracking.example.com/parcels/1Z12345')
+
+      expect(shipment.tracking_url).to eq('https://tracking.example.com/parcels/1Z12345')
     end
   end
 
