@@ -62,3 +62,4 @@ packages/*/dist
 .claude/worktrees
 *.tsbuildinfo
 .claude/scheduled_tasks.lock
+graphify-out/cost.json
