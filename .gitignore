@@ -64,3 +64,5 @@ packages/*/dist
 .claude/scheduled_tasks.lock
 graphify-out/cost.json
 graphify-out/cost.json
+graphify-out-*/
+2026-*/

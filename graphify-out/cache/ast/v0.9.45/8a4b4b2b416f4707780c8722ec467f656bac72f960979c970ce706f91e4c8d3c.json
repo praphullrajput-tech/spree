@@ -1,0 +1,1 @@
+{"nodes": [{"id": "$graphify-root$_spree_lib_generators_spree_install_templates_config_initializers_spree_rb", "label": "spree.rb", "file_type": "code", "source_file": "spree/lib/generators/spree/install/templates/config/initializers/spree.rb", "source_location": "L1"}], "edges": [], "raw_calls": [], "parse_errors": {"first_error_line": 136, "multiline_error": false}}

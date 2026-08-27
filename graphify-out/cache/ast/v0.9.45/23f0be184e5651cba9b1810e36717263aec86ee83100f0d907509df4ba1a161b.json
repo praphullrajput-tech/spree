@@ -1,0 +1,1 @@
+{"nodes": [{"id": "$graphify-root$_spree_core_spec_jobs_spree_search_provider_remove_job_spec_rb", "label": "remove_job_spec.rb", "file_type": "code", "source_file": "spree/core/spec/jobs/spree/search_provider/remove_job_spec.rb", "source_location": "L1"}], "edges": [], "raw_calls": []}

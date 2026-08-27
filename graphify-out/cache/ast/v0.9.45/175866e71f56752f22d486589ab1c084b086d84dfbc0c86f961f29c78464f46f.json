@@ -1,0 +1,1 @@
+{"nodes": [{"id": "$graphify-root$_spree_core_config_initializers_acts_as_taggable_on_rb", "label": "acts_as_taggable_on.rb", "file_type": "code", "source_file": "spree/core/config/initializers/acts_as_taggable_on.rb", "source_location": "L1"}], "edges": [], "raw_calls": []}

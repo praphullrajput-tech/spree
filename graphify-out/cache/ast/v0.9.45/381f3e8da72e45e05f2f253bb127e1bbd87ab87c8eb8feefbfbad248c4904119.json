@@ -1,0 +1,1 @@
+{"nodes": [{"id": "$graphify-root$_spree_core_config_initializers_friendly_id_rb", "label": "friendly_id.rb", "file_type": "code", "source_file": "spree/core/config/initializers/friendly_id.rb", "source_location": "L1"}], "edges": [], "raw_calls": []}

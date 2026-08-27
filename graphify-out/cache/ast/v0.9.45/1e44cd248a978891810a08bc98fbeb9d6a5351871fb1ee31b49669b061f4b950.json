@@ -1,0 +1,1 @@
+{"nodes": [{"id": "$graphify-root$_spree_core_lib_tasks_price_history_rake", "label": "price_history.rake", "file_type": "code", "source_file": "spree/core/lib/tasks/price_history.rake", "source_location": "L1"}], "edges": [], "raw_calls": []}

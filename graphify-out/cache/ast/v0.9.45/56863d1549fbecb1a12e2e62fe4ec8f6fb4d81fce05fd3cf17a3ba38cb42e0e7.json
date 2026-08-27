@@ -1,0 +1,1 @@
+{"nodes": [{"id": "$graphify-root$_spree_core_config_initializers_inflections_rb", "label": "inflections.rb", "file_type": "code", "source_file": "spree/core/config/initializers/inflections.rb", "source_location": "L1"}], "edges": [], "raw_calls": []}
