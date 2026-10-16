@@ -1,0 +1,26 @@
+schema_version: "1.0"
+
+extension:
+  id: assist
+  name: "Onboarding Assistant"
+  version: "1.1.0"
+  description: "Answer developer questions about features, architecture, and rationale using the specs directory and project constitution"
+  author: "Koushik KP"
+  repository: "https://github.com/Mindera/speckit-extension-onboarding-assistant"
+
+requires:
+  speckit_version: ">=0.9.0"
+
+provides:
+  commands:
+    - name: speckit.assist.ask
+      file: commands/speckit.assist.ask.md
+      description: "Answer developer questions about features, architecture, rationale, setup, and where logic lives — using the RAG index and code graph to find sources, then reading and verifying them"
+    - name: speckit.assist.tutor
+      file: commands/speckit.assist.tutor.md
+      description: "Guide new developers through tasks with senior-developer mentoring — conventions, design patterns, and implementation feedback without generating code"
+
+tags:
+  - "learning"
+  - "assistant"
+  - "onboarding"

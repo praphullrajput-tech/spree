@@ -35,6 +35,33 @@
       },
       "registered_skills": [],
       "installed_at": "2026-08-17T11:15:19.061786+00:00"
+    },
+    "assist": {
+      "version": "1.1.0",
+      "source": "local",
+      "manifest_hash": "sha256:461b65feb457985f20e0588ecf14f9fc53628a4c98959ed632d2d75c39dd3eab",
+      "enabled": true,
+      "priority": 10,
+      "registered_commands": {
+        "agy": [
+          "speckit.assist.ask",
+          "speckit.assist.tutor"
+        ],
+        "claude": [
+          "speckit.assist.ask",
+          "speckit.assist.tutor"
+        ],
+        "codex": [
+          "speckit.assist.ask",
+          "speckit.assist.tutor"
+        ],
+        "zed": [
+          "speckit.assist.ask",
+          "speckit.assist.tutor"
+        ]
+      },
+      "registered_skills": [],
+      "installed_at": "2026-09-23T06:36:14.229072+00:00"
     }
   }
 }

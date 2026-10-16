@@ -1,4 +1,5 @@
 installed:
+- assist
 - brownfield
 settings:
   auto_execute_hooks: true
